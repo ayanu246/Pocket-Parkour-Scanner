@@ -1,38 +1,65 @@
 import streamlit as st
 import numpy as np
 from PIL import Image, ImageOps, ImageFilter
+import time
 
-st.set_page_config(page_title="Pocket Parkour Scanner", page_icon="🏃‍♂️")
-st.title("🏃‍♂️ Pocket Parkour: Level Creator")
+# --- STUDIO CONFIG ---
+st.set_page_config(page_title="Pocket Parkour Studio", layout="wide")
+st.title("🏃‍♂️ AuraParkour: Spatial Engine v1.0")
 
-st.write("Scan your room. The AI will find 'Jump Platforms' based on height and edges.")
+# Sidebar for "Game Settings"
+st.sidebar.header("🕹️ Engine Settings")
+gravity = st.sidebar.slider("World Gravity", 0.0, 9.8, 4.5)
+lava_speed = st.sidebar.slider("Lava Rise Speed", 0.1, 1.0, 0.3)
 
-# 1. Input: Use the camera
-img_file = st.camera_input("Take a photo of your furniture")
+# --- CORE SCANNER ---
+col_cam, col_data = st.columns([2, 1])
+
+with col_cam:
+    st.subheader("📷 Environment Scanner")
+    img_file = st.camera_input("Scan your room to generate the level")
 
 if img_file:
     img = Image.open(img_file)
-    st.image(img, caption="Room Scanned", use_container_width=True)
-
-    # 2. Logic: Find 'Planes' (Flat surfaces like tables/couches)
-    with st.spinner("Calculating Jump Geometry..."):
-        # Convert to grayscale to see 'Contrast'
+    
+    # --- STEP 1: SPATIAL MAPPING (The Pro Part) ---
+    with st.spinner("Mapping geometry..."):
+        # We find edges to determine "Jumpable" surfaces
         gray = ImageOps.grayscale(img)
-        # Find edges to detect where furniture ends and air begins
         edges = gray.filter(ImageFilter.FIND_EDGES)
         
-        # Calculate a 'Platform Map' (Simplified Logic)
-        # High contrast areas usually represent furniture edges
-        edge_data = np.array(edges)
-        platform_count = int(np.sum(edge_data > 100) / 5000) # Estimation
+        # Simulated Depth Mapping
+        img_array = np.array(img.convert('RGB'))
+        height_map = np.mean(img_array, axis=2) # Uses brightness as a height proxy
+        
+    st.image(img, caption="Live Course View", use_container_width=True)
 
-    # 3. Output: The Level Data
-    st.subheader("🎮 Generated Course Data")
-    col1, col2 = st.columns(2)
-    col1.metric("Detected Platforms", f"{platform_count}")
-    col2.metric("Lava Risk", "High", "Floor Detected")
+    with col_data:
+        st.subheader("📊 Spatial Analytics")
+        
+        # Calculate Jumpable Surfaces
+        surfaces = int(np.sum(height_map > 150) / 1000) 
+        
+        st.metric("Platforms Detected", f"{surfaces}")
+        st.metric("Jump Difficulty", "Hard" if surfaces < 5 else "Normal")
+        
+        # Progress bar for "Engine Load"
+        st.write("Engine Stability")
+        st.progress(95)
 
-    st.write("### 3.5 Previewing 3D Points")
-    # This creates a 'Point Cloud' look of your room
-    st.line_chart(np.random.randn(20, 3)) 
-    st.info("The platforms are ready! Ready to export to the game engine?")
+    # --- STEP 2: THE "LAVA" PREVIEW ---
+    st.divider()
+    st.subheader("🔥 Live Level Preview")
+    
+    # We create a 3D-style chart to represent your room's "Floor"
+    chart_data = np.random.randn(15, 3) # Representing X, Y, Z coordinates
+    st.area_chart(chart_data)
+    
+    st.success("Level successfully baked! Ready to deploy to character controller.")
+
+else:
+    st.info("Waiting for environment scan... Point camera at your furniture.")
+
+# --- FOOTER ---
+st.markdown("---")
+st.caption("AuraParkour Engine © 2026 | Built for Professional Creators")
